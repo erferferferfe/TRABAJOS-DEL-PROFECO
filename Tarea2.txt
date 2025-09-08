@@ -1,0 +1,119 @@
+
+java
+class Alumno {
+    String nombre;
+    int edad;
+
+    Alumno(String nombre, int edad) {
+        this.nombre = nombre;
+        this.edad = edad;
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Alumno[] alumnos = {
+            new Alumno("Ana", 20),
+            new Alumno("Luis", 22),
+            new Alumno("María", 19)
+        };
+
+        System.out.println("Lista de alumnos:");
+        for (Alumno a : alumnos) {
+            System.out.println(a.nombre + " - " + a.edad + " años");
+        }
+    }
+}
+
+
+javascript
+class Alumno {
+  constructor(nombre, edad) {
+    this.nombre = nombre;
+    this.edad = edad;
+  }
+}
+
+const alumnos = [
+  new Alumno("Ana", 20),
+  new Alumno("Luis", 22),
+  new Alumno("María", 19)
+];
+
+console.log("Lista de alumnos:");
+for (const a of alumnos) {
+  console.log(`${a.nombre} - ${a.edad} años`);
+}
+
+
+C#
+using System;
+
+class Alumno {
+    public string Nombre { get; set; }
+    public int Edad { get; set; }
+
+    public Alumno(string nombre, int edad) {
+        Nombre = nombre;
+        Edad = edad;
+    }
+}
+
+class Program {
+    static void Main() {
+        Alumno[] alumnos = {
+            new Alumno("Ana", 20),
+            new Alumno("Luis", 22),
+            new Alumno("María", 19)
+        };
+
+        Console.WriteLine("Lista de alumnos:");
+        foreach (var a in alumnos) {
+            Console.WriteLine($"{a.Nombre} - {a.Edad} años");
+        }
+    }
+}
+
+
+c++
+#include <iostream>
+#include <string>
+using namespace std;
+
+class Alumno {
+public:
+    string nombre;
+    int edad;
+    Alumno(string n, int e) : nombre(n), edad(e) {}
+};
+
+int main() {
+    Alumno alumnos[] = {
+        Alumno("Ana", 20),
+        Alumno("Luis", 22),
+        Alumno("María", 19)
+    };
+
+    cout << "Lista de alumnos:\n";
+    for (auto &a : alumnos) {
+        cout << a.nombre << " - " << a.edad << " años" << endl;
+    }
+    return 0;
+}
+
+
+Python
+class Alumno:
+    def __init__(self, nombre, edad):
+        self.nombre = nombre
+        self.edad = edad
+
+alumnos = [
+    Alumno("Ana", 20),
+    Alumno("Luis", 22),
+    Alumno("María", 19)
+]
+
+print("Lista de alumnos:")
+for a in alumnos:
+    print(f"{a.nombre} - {a.edad} años")
