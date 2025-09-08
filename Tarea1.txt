@@ -1,0 +1,65 @@
+
+java
+public class Main {
+    public static void main(String[] args) {
+        int[] arr = {40, 50, 60, 70, 80, 90};
+        System.out.print("Recorrido lineal (secuencial): ");
+        System.out.print("\nLos elementos del array son: ");
+        for (int x : arr) {
+            System.out.print(x + " ");
+        }
+        System.out.println();
+    }
+}
+
+
+javascript
+const arr = [40, 50, 60, 70, 80, 90];
+
+process.stdout.write("Recorrido lineal (secuencial): ");
+process.stdout.write("\nLos elementos del array son: ");
+for (const x of arr) {
+  process.stdout.write(x + " ");
+}
+process.stdout.write("\n");
+
+
+C#
+using System;
+
+class Program {
+    static void Main() {
+        int[] arr = {40, 50, 60, 70, 80, 90};
+        Console.Write("Recorrido lineal (secuencial): ");
+        Console.Write("\nLos elementos del array son: ");
+        foreach (var x in arr) {
+            Console.Write(x + " ");
+        }
+        Console.WriteLine();
+    }
+}
+
+
+C++
+#include <iostream>
+using namespace std;
+
+int main() {
+    int arr[] = {40, 50, 60, 70, 80, 90};
+    cout << "Recorrido lineal (secuencial): ";
+    cout << "\nLos elementos del array son: ";
+    for (int x : arr) {
+        cout << x << ' ';
+    }
+    cout << '\n';
+    return 0;
+}
+
+
+Python
+arr = [40, 50, 60, 70, 80, 90]
+print("Recorrido lineal (secuencial): ", end="")
+print("\nLos elementos del array son: ", end="")
+for idx in arr:
+    print(idx, end=" ")
+print()
