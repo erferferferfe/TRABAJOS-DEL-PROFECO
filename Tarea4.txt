@@ -1,0 +1,88 @@
+
+java
+import java.util.ArrayList;
+
+public class Main {
+    public static void main(String[] args) {
+        ArrayList<Integer> arr = new ArrayList<>();
+        arr.add(10);
+        arr.add(20);
+        arr.add(30);
+
+        // Insertar elemento
+        arr.add(40);
+
+        // Recorrer e imprimir
+        System.out.println("Elementos del arreglo:");
+        for (int x : arr) {
+            System.out.println(x);
+        }
+    }
+}
+
+
+JavaScript
+let arr = [10, 20, 30];
+
+// Insertar elemento
+arr.push(40);
+
+// Recorrer e imprimir
+console.log("Elementos del arreglo:");
+for (let x of arr) {
+  console.log(x);
+}
+
+
+C#
+using System;
+using System.Collections.Generic;
+
+class Program {
+    static void Main() {
+        List<int> arr = new List<int> {10, 20, 30};
+
+        // Insertar elemento
+        arr.Add(40);
+
+        // Recorrer e imprimir
+        Console.WriteLine("Elementos del arreglo:");
+        foreach (int x in arr) {
+            Console.WriteLine(x);
+        }
+    }
+}
+
+
+C++
+#include <iostream>
+#include <vector>
+using namespace std;
+
+int main() {
+    vector<int> arr = {10, 20, 30};
+
+    // Insertar elemento
+    arr.push_back(40);
+
+    // Recorrer e imprimir
+    cout << "Elementos del arreglo:\n";
+    for (int x : arr) {
+        cout << x << endl;
+    }
+
+    return 0;
+}
+
+
+
+Python
+arr = [10, 20, 30]
+
+# Insertar elemento
+arr.append(40)
+
+# Recorrer e imprimir
+print("Elementos del arreglo:")
+for x in arr:
+    print(x)
