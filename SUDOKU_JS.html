@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Sudoku — Vidas, Niveles y Ranking</title>
+<style>
+  :root{--bg:#071029;--card:#0b1220;--accent:#3b82f6;--muted:#94a3b8;--white:#e6eef8}
+  *{box-sizing:border-box;font-family:Inter,system-ui,Arial}
+  body{margin:0;background:linear-gradient(180deg,#071029 0%, #071727 100%);color:var(--white);display:flex;align-items:center;justify-content:center;min-height:100vh;padding:28px}
+  .app{width:100%;max-width:1100px}
+  header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+  h1{margin:0;font-size:20px}
+  .board-wrap{display:flex;gap:18px}
+  .board{display:grid;grid-template-columns:repeat(9,44px);gap:4px;padding:12px;background:rgba(255,255,255,0.03);border-radius:12px;width:max-content}
+  .cell{width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.02);border-radius:6px;font-size:18px}
+  .cell.prefilled{background:rgba(255,255,255,0.06);font-weight:700;color:var(--muted)}
+  .cell.selected{outline:2px solid #ffd54a}
+  .cell input{width:100%;height:100%;border:0;background:transparent;color:inherit;font-size:18px;text-align:center}
+  .controls{display:flex;flex-direction:column;gap:12px;min-width:260px}
+  .panel{background:var(--card);padding:12px;border-radius:10px}
+  .btn{background:var(--accent);color:#fff;padding:8px 10px;border:0;border-radius:8px;cursor:pointer}
+  .btn-ghost{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--white)}
+  .ranking-list{max-height:300px;overflow:auto;margin-top:8px}
+  .rank-item{display:flex;justify-content:space-between;padding:8px;border-bottom:1px dashed rgba(255,255,255,0.02)}
+  .small{font-size:13px;color:var(--muted)}
+  footer{margin-top:14px;color:var(--muted);font-size:13px}
+  @media(max-width:900px){.board-wrap{flex-direction:column}}
+</style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>Sudoku — 15 Niveles (5F / 5M / 5D) + Ranking</h1>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button id="viewRankingBtn" class="btn btn-ghost">Ver ranking</button>
+        <div class="small">Jugador: <strong id="playerName">(sin nombre)</strong></div>
+      </div>
+    </header>
+
+    <div class="board-wrap">
+      <div>
+        <div id="board" class="board" aria-label="Tablero de Sudoku"></div>
+        <div style="margin-top:10px;display:flex;gap:8px">
+          <button id="undoBtn" class="btn-ghost">Deshacer (Ctrl+Z)</button>
+          <button id="restartBtn" class="btn btn-ghost">Reiniciar nivel</button>
+          <button id="solveBtn" class="btn btn-ghost">Mostrar solución</button>
+        </div>
+        <footer class="small">Reglas: 8 vidas totales; cada error resta 1 vida. Completa 15 niveles. El ranking se guarda automáticamente al perder o al completar todos los niveles.</footer>
+      </div>
+
+      <div class="controls">
+        <div class="panel">
+          <div class="small">Vidas: <strong id="livesDisplay">8</strong></div>
+          <div class="small">Nivel: <strong id="levelDisplay">1 / 15</strong></div>
+          <div class="small">Errores: <strong id="mistakes">0</strong></div>
+          <div class="small">Undos: <strong id="undos">0</strong></div>
+          <div class="small">Tiempo: <strong id="timer">00:00</strong></div>
+        </div>
+
+        <div class="panel">
+          <div class="small">Números: selecciona una celda y presiona 1-9 en tu teclado.</div>
+          <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+            <button class="num btn-ghost" data-num="1">1</button>
+            <button class="num btn-ghost" data-num="2">2</button>
+            <button class="num btn-ghost" data-num="3">3</button>
+            <button class="num btn-ghost" data-num="4">4</button>
+            <button class="num btn-ghost" data-num="5">5</button>
+            <button class="num btn-ghost" data-num="6">6</button>
+            <button class="num btn-ghost" data-num="7">7</button>
+            <button class="num btn-ghost" data-num="8">8</button>
+            <button class="num btn-ghost" data-num="9">9</button>
+            <button id="eraseBtn" class="btn-ghost">Borrar (Del/Backspace)</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div style="display:flex;justify-content:space-between;align-items:center"><div class="small">Ranking</div><div><button id="saveNowBtn" class="btn">Guardar ahora</button></div></div>
+          <div id="rankingList" class="ranking-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+// --- Config ---
+const TOTAL_LEVELS = 15;
+const LIVES_INITIAL = 8;
+const cluesByLevel = [45,40,35,30,25,22,20,18,16,14,12,10,9,8,7];
+
+// Estado
+let playerName = '';
+let levelIndex = 0; // 0..14
+let lives = LIVES_INITIAL;
+let mistakes = 0;
+let undoStack = [];
+let undosUsed = 0;
+let sessionStart = null;
+let timerInterval = null;
+let currentSolution = null; // flat array 81
+let currentPuzzle = null; // flat array 81
+let initialGiven = null;
+let selectedIndex = null;
+
+// DOM
+const boardEl = document.getElementById('board');
+const livesEl = document.getElementById('livesDisplay');
+const levelEl = document.getElementById('levelDisplay');
+const mistakesEl = document.getElementById('mistakes');
+const undosEl = document.getElementById('undos');
+const timerEl = document.getElementById('timer');
+const playerNameEl = document.getElementById('playerName');
+const rankingList = document.getElementById('rankingList');
+
+// Prompt for name
+function askPlayerName(){
+  let name = prompt('Introduce tu nombre para el ranking:','Jugador');
+  if(!name) name = 'Jugador';
+  playerName = name.trim();
+  playerNameEl.textContent = playerName;
+}
+
+// --- Sudoku generator (backtracking) ---
+function generateSolvedBoard(){
+  const board = new Array(81).fill(0);
+  function isSafe(b,r,c,num){
+    for(let j=0;j<9;j++) if(b[r*9+j]===num) return false;
+    for(let i=0;i<9;i++) if(b[i*9+c]===num) return false;
+    const br=Math.floor(r/3)*3, bc=Math.floor(c/3)*3;
+    for(let i=0;i<3;i++) for(let j=0;j<3;j++) if(b[(br+i)*9 + (bc+j)]===num) return false;
+    return true;
+  }
+  function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}}
+  function solvePos(idx){
+    if(idx>=81) return true;
+    const r=Math.floor(idx/9), c=idx%9;
+    if(board[idx]!==0) return solvePos(idx+1);
+    const nums=[1,2,3,4,5,6,7,8,9]; shuffle(nums);
+    for(const n of nums){
+      if(isSafe(board,r,c,n)){
+        board[idx]=n;
+        if(solvePos(idx+1)) return true;
+        board[idx]=0;
+      }
+    }
+    return false;
+  }
+  solvePos(0);
+  return board;
+}
+
+function makePuzzleFromSolution(solution, clues){
+  const puzzle = solution.slice();
+  const indices = Array.from({length:81},(_,i)=>i);
+  shuffleArray(indices);
+  while(puzzle.filter(x=>x!==0).length > clues){
+    const idx = indices.pop();
+    puzzle[idx]=0;
+  }
+  return puzzle;
+}
+function shuffleArray(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}}
+
+// --- Render ---
+function renderBoard(){
+  boardEl.innerHTML = '';
+  for(let i=0;i<81;i++){
+    const div = document.createElement('div');
+    div.className = 'cell';
+    div.dataset.index = i;
+    const r = Math.floor(i/9), c = i%9;
+    if(initialGiven[i]){
+      div.classList.add('prefilled');
+      div.textContent = currentPuzzle[i] || '';
+    } else {
+      const input = document.createElement('div');
+      input.contentEditable = false; // we'll handle keyboard globally
+      input.textContent = currentPuzzle[i] || '';
+      div.appendChild(input);
+      div.addEventListener('click', ()=>selectCell(i,div));
+    }
+    boardEl.appendChild(div);
+  }
+  updateUI();
+}
+
+function selectCell(idx,el){
+  // ignore prefilled
+  if(initialGiven[idx]) return;
+  // remove previous
+  const prev = boardEl.querySelector('.cell.selected');
+  if(prev) prev.classList.remove('selected');
+  el.classList.add('selected');
+  selectedIndex = idx;
+}
+
+// --- Input handling (keyboard) ---
+function setCellValue(idx,val){
+  // replace value (no concat)
+  currentPuzzle[idx] = val;
+  const cell = boardEl.querySelector(`.cell[data-index="${idx}"]`);
+  if(cell){
+    const inner = cell.querySelector('div');
+    if(inner) inner.textContent = val || '';
+  }
+}
+
+function pushUndo(idx,prev){ undoStack.push({idx,prev}); undosEl.textContent = undoStack.length; }
+function undo(){ if(undoStack.length===0) return; const op = undoStack.pop(); undosUsed++; undosEl.textContent = undosUsed; setCellValue(op.idx, op.prev); }
+
+document.addEventListener('keydown', (e)=>{
+  if(selectedIndex===null) return;
+  const idx = selectedIndex;
+  if(e.key>='1' && e.key<='9'){
+    e.preventDefault();
+    const val = +e.key;
+    // save undo
+    pushUndo(idx, currentPuzzle[idx]);
+    // set and check
+    setCellValue(idx, val);
+    if(currentSolution[idx] === val){
+      // correct
+      // optional visual feedback
+      const cell = boardEl.querySelector(`.cell[data-index="${idx}"]`);
+      if(cell) cell.style.color = '#34d399';
+      checkLevelCompletion();
+    } else {
+      mistakes++; mistakesEl.textContent = mistakes; lives--; livesEl.textContent = lives;
+      const cell = boardEl.querySelector(`.cell[data-index="${idx}"]`);
+      if(cell) cell.style.color = '#f87171';
+      if(lives<=0){ endGame(false); }
+    }
+  }
+  if(e.key === 'Backspace' || e.key === 'Delete'){
+    e.preventDefault();
+    if(initialGiven[idx]) return;
+    pushUndo(idx, currentPuzzle[idx]);
+    setCellValue(idx, 0);
+  }
+  if((e.key === 'z' || e.key === 'Z') && (e.ctrlKey || e.metaKey)){ e.preventDefault(); undo(); }
+});
+
+// Number buttons
+document.querySelectorAll('.num').forEach(btn=>btn.addEventListener('click', ()=>{
+  const n = +btn.dataset.num;
+  if(selectedIndex===null) return alert('Selecciona una celda primero');
+  pushUndo(selectedIndex, currentPuzzle[selectedIndex]);
+  setCellValue(selectedIndex,n);
+  if(currentSolution[selectedIndex] === n){
+    const cell = boardEl.querySelector(`.cell[data-index="${selectedIndex}"]`); if(cell) cell.style.color = '#34d399';
+    checkLevelCompletion();
+  } else { mistakes++; mistakesEl.textContent = mistakes; lives--; livesEl.textContent = lives; const cell = boardEl.querySelector(`.cell[data-index="${selectedIndex}"]`); if(cell) cell.style.color = '#f87171'; if(lives<=0) endGame(false);} 
+}));
+
+document.getElementById('eraseBtn').addEventListener('click', ()=>{ if(selectedIndex===null) return alert('Selecciona una celda.'); if(initialGiven[selectedIndex]) return; pushUndo(selectedIndex, currentPuzzle[selectedIndex]); setCellValue(selectedIndex,0); });
+
+document.getElementById('undoBtn').addEventListener('click', undo);
+document.getElementById('restartBtn').addEventListener('click', ()=>startLevel(levelIndex));
+document.getElementById('solveBtn').addEventListener('click', ()=>{ if(!confirm('Mostrar solución completará el nivel. Continuar?')) return; for(let i=0;i<81;i++) setCellValue(i, currentSolution[i]); checkLevelCompletion(); });
+
+document.getElementById('viewRankingBtn').addEventListener('click', ()=>{ renderRanking(true); });
+document.getElementById('saveNowBtn').addEventListener('click', ()=>{ saveToRanking(buildRankingEntry()); renderRanking(true); alert('Resultado guardado.'); });
+
+// --- Game flow ---
+function startTimer(){ sessionStart = sessionStart || Date.now(); if(timerInterval) clearInterval(timerInterval); timerInterval = setInterval(()=>{ const s = Math.floor((Date.now()-sessionStart)/1000); timerEl.textContent = formatTime(s); },1000); }
+function stopTimer(){ if(timerInterval) clearInterval(timerInterval); timerInterval = null; }
+
+function formatTime(s){ if(!s && s!==0) return '--:--'; const mm = Math.floor(s/60); const ss = s%60; return String(mm).padStart(2,'0')+':'+String(ss).padStart(2,'0'); }
+
+function updateUI(){ levelEl.textContent = (levelIndex+1) + ' / ' + TOTAL_LEVELS; livesEl.textContent = lives; mistakesEl.textContent = mistakes; undosEl.textContent = undosUsed; }
+
+function checkLevelCompletion(){ if(currentPuzzle.every((v,i)=>v===currentSolution[i])){ // level finished
+    levelIndex++;
+    if(levelIndex>=TOTAL_LEVELS){ endGame(true); } else { alert('Nivel completado. Pasando al siguiente nivel.'); startLevel(levelIndex); }
+  }
+  updateUI(); }
+
+function endGame(won){ stopTimer(); const elapsed = Math.floor((Date.now()-sessionStart)/1000); if(won){ alert('¡Felicidades, completaste los 15 niveles!'); } else { alert('Te quedaste sin vidas. Fin de la partida.'); }
+  const entry = buildRankingEntry(); entry.timeSeconds = elapsed; saveToRanking(entry); renderRanking(true); // show ranking
+  resetAll(); }
+
+function buildRankingEntry(){ const elapsed = Math.floor((Date.now()-sessionStart)/1000); return { name: playerName, levelsCompleted: Math.min(levelIndex, TOTAL_LEVELS), mistakes, undosUsed, timeSeconds: elapsed, date: new Date().toISOString() }; }
+
+function saveToRanking(entry){ const data = JSON.parse(localStorage.getItem('sudoku_rankings')||'[]'); data.push(entry); // sort: level desc, mistakes asc, time asc
+  data.sort((a,b)=> (b.levelsCompleted - a.levelsCompleted) || (a.mistakes - b.mistakes) || (a.timeSeconds - b.timeSeconds)); localStorage.setItem('sudoku_rankings', JSON.stringify(data.slice(0,100))); }
+
+function renderRanking(scrollTo=false){ const data = JSON.parse(localStorage.getItem('sudoku_rankings')||'[]'); rankingList.innerHTML = ''; if(data.length===0) { rankingList.innerHTML = '<div class="small muted">Sin resultados aún.</div>'; return; } data.forEach((r,idx)=>{ const div = document.createElement('div'); div.className = 'rank-item'; div.innerHTML = `<div><strong>${r.name}</strong><div class="small">Niveles: ${r.levelsCompleted} • Errores: ${r.mistakes} • Tiempo: ${formatTime(r.timeSeconds)}</div></div><div class="small">#${idx+1}</div>`; rankingList.appendChild(div); }); if(scrollTo) rankingList.scrollIntoView({behavior:'smooth'}); }
+
+// --- Start / Level management ---
+function startLevel(idx){ // reset per-level
+  // keep cumulative mistakes and undos
+  currentSolution = generateSolvedBoard();
+  const clues = cluesByLevel[idx];
+  currentPuzzle = makePuzzleFromSolution(currentSolution, clues);
+  initialGiven = currentPuzzle.map(v=>!!v);
+  undoStack=[]; undosUsed=0; selectedIndex=null;
+  renderBoard(); startTimer(); updateUI(); }
+
+function resetAll(){ levelIndex = 0; lives = LIVES_INITIAL; mistakes = 0; undoStack=[]; undosUsed=0; sessionStart = null; stopTimer(); timerEl.textContent='00:00'; updateUI(); askPlayerName(); renderRanking(false); startLevel(levelIndex); }
+
+// --- Init ---
+askPlayerName(); renderRanking(false); startLevel(levelIndex);
+
+</script>
+</body>
+</html>
