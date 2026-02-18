@@ -251,10 +251,9 @@ $ python main.py
 - **Preorden**: Raíz → Hijos (implementado para export)
 - Recursivo y eficiente
 
-## 👥 Autores
+## 👥 Autora
 
-- López Návarez Mario David
-- Osuna De La Cruz Victor Leonardo
+- López Perez Cesar Alejandro
 
 ## 📄 Licencia
 
