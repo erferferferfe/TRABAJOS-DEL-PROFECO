@@ -104,7 +104,6 @@ Proyecto cumple y excede los requisitos:
 ---
 
 **Integrantes:**
-- López Návarez Mario David
-- Osuna De La Cruz Victor Leonardo
+- López Perez Cesar Alejandro
 
 **Fecha:** 15 de Diciembre, 2025
